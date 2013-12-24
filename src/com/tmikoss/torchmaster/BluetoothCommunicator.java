@@ -37,6 +37,8 @@ public class BluetoothCommunicator {
     if (!btAdapter.isEnabled()) {
       Intent enableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
       context.startActivityForResult(enableBluetooth, activityResultBluetoothEnabled);
+    } else {
+    	bluetoothEnabled();
     }
   }
 
