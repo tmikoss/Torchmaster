@@ -1,10 +1,15 @@
 package com.tmikoss.torchmaster;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Menu;
-import android.widget.CompoundButton;
-import android.widget.Switch;
+import android.view.View;
+import android.view.View.OnClickListener;
+
+import com.chiralcode.colorpicker.ColorPickerDialog;
+import com.chiralcode.colorpicker.ColorPickerDialog.OnColorSelectedListener;
 
 public class MainActivity extends Activity {
   BluetoothCommunicator btCommunicator;
@@ -15,17 +20,24 @@ public class MainActivity extends Activity {
     setContentView(R.layout.activity_main);
 
     btCommunicator = new BluetoothCommunicator(this, "HC-06");
-    btCommunicator.connect();
+    btCommunicator.enableBluetooth();
 
-    Switch onOffSwitch = (Switch) findViewById(R.id.switchCurrentStatus);
-    onOffSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+    final View colorView = findViewById(R.id.viewColor);
+    colorView.setBackgroundColor(Color.BLACK);
+
+    final ColorPickerDialog colorPickerDialog = new ColorPickerDialog(this, Color.WHITE, new OnColorSelectedListener() {
       @Override
-      public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-        if (isChecked) {
-          btCommunicator.sendMessage("C-200-200-200");
-        } else {
-          btCommunicator.sendMessage("C-0-0-0");
-        }
+      public void onColorSelected(int color) {
+        btCommunicator.sendMessage("C-" + Integer.toString(Color.red(color)) + "-" + Integer.toString(Color.green(color)) + "-"
+            + Integer.toString(Color.blue(color)));
+        colorView.setBackgroundColor(color);
+      }
+    });
+
+    colorView.setOnClickListener(new OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        colorPickerDialog.show();
       }
     });
   }
@@ -36,4 +48,14 @@ public class MainActivity extends Activity {
     return true;
   }
 
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent authActivityResult) {
+    super.onActivityResult(requestCode, resultCode, authActivityResult);
+    switch (requestCode) {
+    case BluetoothCommunicator.activityResultBluetoothEnabled:
+      if (resultCode == RESULT_OK) {
+        btCommunicator.bluetoothEnabled();
+      }
+    }
+  }
 }

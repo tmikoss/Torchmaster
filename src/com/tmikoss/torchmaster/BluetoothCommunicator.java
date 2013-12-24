@@ -13,7 +13,8 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 
 public class BluetoothCommunicator {
-  private BluetoothAdapter btAdapter;
+  public final static int activityResultBluetoothEnabled = 10;
+  private final BluetoothAdapter btAdapter;
   private BluetoothSocket btSocket;
   private BluetoothDevice btDevice;
   private OutputStream btOutputStream;
@@ -29,16 +30,17 @@ public class BluetoothCommunicator {
     this.context = context;
     this.deviceName = deviceName;
     this.uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
+    this.btAdapter = BluetoothAdapter.getDefaultAdapter();
   };
 
-  void connect() {
-    btAdapter = BluetoothAdapter.getDefaultAdapter();
-
+  void enableBluetooth() {
     if (!btAdapter.isEnabled()) {
       Intent enableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-      context.startActivityForResult(enableBluetooth, 0);
+      context.startActivityForResult(enableBluetooth, activityResultBluetoothEnabled);
     }
+  }
 
+  void bluetoothEnabled() {
     Set<BluetoothDevice> pairedDevices = btAdapter.getBondedDevices();
     if (pairedDevices.size() > 0) {
       for (BluetoothDevice device : pairedDevices) {
@@ -56,16 +58,13 @@ public class BluetoothCommunicator {
       btInputStream = btSocket.getInputStream();
     } catch (IOException e) {
       e.printStackTrace();
+      return;
     }
 
     isConnected = true;
   }
 
   boolean sendMessage(String message) {
-    if (!isConnected) {
-      connect();
-    }
-
     if (!isConnected) {
       return false;
     }
