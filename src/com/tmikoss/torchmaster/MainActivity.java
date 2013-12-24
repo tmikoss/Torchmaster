@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -57,5 +58,9 @@ public class MainActivity extends Activity {
         btCommunicator.bluetoothEnabled();
       }
     }
+  }
+
+  public void receiveMessage(String message) {
+    Log.d("bt", message);
   }
 }
