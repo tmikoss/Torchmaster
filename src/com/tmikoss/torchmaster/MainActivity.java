@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -13,7 +12,10 @@ import com.chiralcode.colorpicker.ColorPickerDialog;
 import com.chiralcode.colorpicker.ColorPickerDialog.OnColorSelectedListener;
 
 public class MainActivity extends Activity {
-  BluetoothCommunicator btCommunicator;
+  private BluetoothCommunicator btCommunicator;
+  private int                   currentColor;
+  private int                   currentOpacity;
+  private View                  colorView;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -23,15 +25,13 @@ public class MainActivity extends Activity {
     btCommunicator = new BluetoothCommunicator(this, "HC-06");
     btCommunicator.enableBluetooth();
 
-    final View colorView = findViewById(R.id.viewColor);
-    colorView.setBackgroundColor(Color.BLACK);
+    colorView = findViewById(R.id.viewColor);
+    setCurrentColor(Color.BLACK);
 
     final ColorPickerDialog colorPickerDialog = new ColorPickerDialog(this, Color.WHITE, new OnColorSelectedListener() {
       @Override
       public void onColorSelected(int color) {
-        btCommunicator.sendMessage("C-" + Integer.toString(Color.red(color)) + "-" + Integer.toString(Color.green(color)) + "-"
-            + Integer.toString(Color.blue(color)));
-        colorView.setBackgroundColor(color);
+        setCurrentColor(color);
       }
     });
 
@@ -61,6 +61,18 @@ public class MainActivity extends Activity {
   }
 
   public void receiveMessage(String message) {
-    Log.d("bt", message);
+    String[] tokens = message.split("-");
+    switch (message.charAt(0)) {
+    case 'S':
+      setCurrentColor(Color.rgb(Integer.parseInt(tokens[1]), Integer.parseInt(tokens[2]), Integer.parseInt(tokens[3])));
+      currentOpacity = Integer.parseInt(tokens[4]);
+    }
+  }
+
+  public void setCurrentColor(int color) {
+    currentColor = color;
+    colorView.setBackgroundColor(currentColor);
+    btCommunicator.sendMessage("C-" + Integer.toString(Color.red(currentColor)) + "-" + Integer.toString(Color.green(currentColor)) + "-"
+        + Integer.toString(Color.blue(currentColor)));
   }
 }

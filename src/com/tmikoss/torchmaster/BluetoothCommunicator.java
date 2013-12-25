@@ -68,6 +68,8 @@ public class BluetoothCommunicator {
     isConnected = true;
 
     receiveMessages();
+
+    sendMessage("S");
   }
 
   boolean sendMessage(String message) {
