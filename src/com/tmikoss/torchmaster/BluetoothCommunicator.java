@@ -73,13 +73,15 @@ public class BluetoothCommunicator {
   }
 
   void dropConnection() {
-    isConnected = false;
-    try {
-      btInputStream.close();
-      btOutputStream.close();
-      btSocket.close();
-    } catch (IOException e) {
-      e.printStackTrace();
+    if (isConnected) {
+      isConnected = false;
+      try {
+        btInputStream.close();
+        btOutputStream.close();
+        btSocket.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
   }
 

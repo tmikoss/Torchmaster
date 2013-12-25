@@ -1,8 +1,14 @@
 package com.tmikoss.torchmaster;
 
+import java.util.Random;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.view.Menu;
 import android.widget.SeekBar;
@@ -11,15 +17,23 @@ import android.widget.SeekBar.OnSeekBarChangeListener;
 import com.larswerkman.holocolorpicker.ColorPicker;
 import com.larswerkman.holocolorpicker.ColorPicker.OnColorChangedListener;
 
-public class MainActivity extends Activity implements OnColorChangedListener {
+public class MainActivity extends Activity implements OnColorChangedListener, SensorEventListener {
   private BluetoothCommunicator btCommunicator;
   private ColorPicker           colorPicker;
   private SeekBar               opacityBar;
+  private SensorManager         sensorManager;
+  private Sensor                accSensor;
+  private long                  lastRandomAt = 0;
+  private final Random          rng          = new Random();
+  private final int[]           randomColors = new int[] { Color.GREEN, Color.BLUE, Color.CYAN, Color.MAGENTA, Color.RED, Color.YELLOW };
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
+
+    sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+    accSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
 
     btCommunicator = new BluetoothCommunicator(this, "HC-06");
 
@@ -73,6 +87,7 @@ public class MainActivity extends Activity implements OnColorChangedListener {
 
   @Override
   public void onColorChanged(int color) {
+    colorPicker.setColor(color);
     colorPicker.setOldCenterColor(color);
     btCommunicator.sendMessage("C-" + Integer.toString(Color.red(color)) + "-" + Integer.toString(Color.green(color)) + "-"
         + Integer.toString(Color.blue(color)));
@@ -82,11 +97,34 @@ public class MainActivity extends Activity implements OnColorChangedListener {
   public void onResume() {
     super.onResume();
     btCommunicator.enableBluetooth();
+    sensorManager.registerListener(this, accSensor, SensorManager.SENSOR_DELAY_NORMAL);
   }
 
   @Override
   public void onPause() {
     super.onPause();
     btCommunicator.dropConnection();
+    sensorManager.unregisterListener(this, accSensor);
+  }
+
+  @Override
+  public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+  }
+
+  public void setRandomColor() {
+    if (System.currentTimeMillis() - lastRandomAt < 2000) return;
+    int index = rng.nextInt(randomColors.length);
+    onColorChanged(randomColors[index]);
+    lastRandomAt = System.currentTimeMillis();
+  }
+
+  @Override
+  public void onSensorChanged(SensorEvent event) {
+    if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
+      if (event.values[0] > 5) {
+        setRandomColor();
+      }
+    }
   }
 }
