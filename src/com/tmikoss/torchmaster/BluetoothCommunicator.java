@@ -114,7 +114,7 @@ public class BluetoothCommunicator {
                   handler.post(new Runnable() {
                     @Override
                     public void run() {
-                      context.receiveMessage(data);
+                      context.receiveMessage(data.trim());
                     }
                   });
                 } else {

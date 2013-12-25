@@ -9,9 +9,9 @@
 *.class
 
 # generated files
-bin
-gen
-.settings
+bin/
+gen/
+.settings/
 
 # Ignore gradle files
 .gradle/
