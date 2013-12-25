@@ -122,7 +122,7 @@ public class MainActivity extends Activity implements OnColorChangedListener, Se
   @Override
   public void onSensorChanged(SensorEvent event) {
     if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
-      if (event.values[0] > 5) {
+      if (event.values[1] > 4) {
         setRandomColor();
       }
     }
