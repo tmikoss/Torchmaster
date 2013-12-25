@@ -40,11 +40,11 @@ public class BluetoothCommunicator {
       Intent enableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
       context.startActivityForResult(enableBluetooth, activityResultBluetoothEnabled);
     } else {
-      bluetoothEnabled();
+      establishConnection();
     }
   }
 
-  void bluetoothEnabled() {
+  void establishConnection() {
     Set<BluetoothDevice> pairedDevices = btAdapter.getBondedDevices();
     if (pairedDevices.size() > 0) {
       for (BluetoothDevice device : pairedDevices) {
@@ -70,6 +70,17 @@ public class BluetoothCommunicator {
     receiveMessages();
 
     sendMessage("S");
+  }
+
+  void dropConnection() {
+    isConnected = false;
+    try {
+      btInputStream.close();
+      btOutputStream.close();
+      btSocket.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   boolean sendMessage(String message) {
@@ -99,7 +110,7 @@ public class BluetoothCommunicator {
         readBufferPosition = 0;
         readBuffer = new byte[1024];
         try {
-          while (!Thread.currentThread().isInterrupted()) {
+          while (!Thread.currentThread().isInterrupted() && isConnected) {
             int bytesAvailable = btInputStream.available();
             if (bytesAvailable > 0) {
               byte[] packetBytes = new byte[bytesAvailable];

@@ -22,7 +22,6 @@ public class MainActivity extends Activity implements OnColorChangedListener {
     setContentView(R.layout.activity_main);
 
     btCommunicator = new BluetoothCommunicator(this, "HC-06");
-    btCommunicator.enableBluetooth();
 
     colorPicker = (ColorPicker) findViewById(R.id.colorPicker);
     colorPicker.setOnColorChangedListener(this);
@@ -56,7 +55,7 @@ public class MainActivity extends Activity implements OnColorChangedListener {
     switch (requestCode) {
     case BluetoothCommunicator.activityResultBluetoothEnabled:
       if (resultCode == RESULT_OK) {
-        btCommunicator.bluetoothEnabled();
+        btCommunicator.establishConnection();
       }
     }
   }
@@ -77,5 +76,17 @@ public class MainActivity extends Activity implements OnColorChangedListener {
     colorPicker.setOldCenterColor(color);
     btCommunicator.sendMessage("C-" + Integer.toString(Color.red(color)) + "-" + Integer.toString(Color.green(color)) + "-"
         + Integer.toString(Color.blue(color)));
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+    btCommunicator.enableBluetooth();
+  }
+
+  @Override
+  public void onPause() {
+    super.onPause();
+    btCommunicator.dropConnection();
   }
 }
