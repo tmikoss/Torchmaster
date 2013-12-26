@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import android.app.Activity;
@@ -69,7 +70,19 @@ public class BluetoothCommunicator {
 
     receiveMessages();
 
+    queryColorStatus();
+    syncTime();
+  }
+
+  void queryColorStatus() {
     sendMessage("S");
+  }
+
+  void syncTime() {
+    long utcTime = System.currentTimeMillis();
+    int offset = TimeZone.getDefault().getRawOffset();
+
+    sendMessage("T-" + Long.toString((utcTime + offset) / 1000));
   }
 
   void dropConnection() {

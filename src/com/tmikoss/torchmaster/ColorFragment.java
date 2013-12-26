@@ -51,7 +51,7 @@ public class ColorFragment extends Fragment implements OnColorChangedListener {
     });
 
     btCommunicator = ((MainActivity) this.getActivity()).getCommunicator();
-    btCommunicator.sendMessage("S");
+    btCommunicator.queryColorStatus();
   }
 
   public void setDisplayedColor(int color) {
