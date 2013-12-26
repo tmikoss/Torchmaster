@@ -1,5 +1,6 @@
 package com.tmikoss.torchmaster;
 
+import android.content.Context;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
@@ -7,9 +8,11 @@ import android.support.v4.app.FragmentPagerAdapter;
 public class PagerAdapter extends FragmentPagerAdapter {
   private ColorFragment colorFragment;
   private AlarmFragment alarmFragment;
+  private final Context context;
 
-  public PagerAdapter(FragmentManager fm) {
+  public PagerAdapter(FragmentManager fm, Context context) {
     super(fm);
+    this.context = context;
   }
 
   public ColorFragment getColorFragment() {
@@ -47,9 +50,9 @@ public class PagerAdapter extends FragmentPagerAdapter {
   public CharSequence getPageTitle(int position) {
     switch (position) {
     case 0:
-      return "Color";
+      return context.getString(R.string.colorFragment_title);
     case 1:
-      return "Alarm";
+      return context.getString(R.string.alarmFragment_title);
     default:
       return "";
     }

@@ -30,7 +30,7 @@ public class MainActivity extends FragmentActivity implements SensorEventListene
 
     btCommunicator = new BluetoothCommunicator(this, "HC-06");
 
-    pagerAdapter = new PagerAdapter(getSupportFragmentManager());
+    pagerAdapter = new PagerAdapter(getSupportFragmentManager(), this);
 
     final ActionBar actionBar = getActionBar();
     actionBar.setHomeButtonEnabled(false);
