@@ -2,7 +2,7 @@
 <resources>
 
     <string name="app_name">Torchmaster</string>
-    <string name="action_settings">Settings</string>
-    <string name="main.currentStatus">Current Status</string>
+    <string name="colorFragment.title">Krāsa</string>
+    <string name="alarmFragment.title">Modinātāji</string>
 
 </resources>

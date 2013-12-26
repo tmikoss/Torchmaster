@@ -1,8 +1,8 @@
 package com.tmikoss.torchmaster;
 
-import java.util.Random;
-
-import android.app.Activity;
+import android.app.ActionBar;
+import android.app.ActionBar.Tab;
+import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.graphics.Color;
 import android.hardware.Sensor;
@@ -10,22 +10,15 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.view.Menu;
-import android.widget.SeekBar;
-import android.widget.SeekBar.OnSeekBarChangeListener;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.view.ViewPager;
 
-import com.larswerkman.holocolorpicker.ColorPicker;
-import com.larswerkman.holocolorpicker.ColorPicker.OnColorChangedListener;
-
-public class MainActivity extends Activity implements OnColorChangedListener, SensorEventListener {
+public class MainActivity extends FragmentActivity implements SensorEventListener, ActionBar.TabListener {
   private BluetoothCommunicator btCommunicator;
-  private ColorPicker           colorPicker;
-  private SeekBar               opacityBar;
   private SensorManager         sensorManager;
   private Sensor                accSensor;
-  private long                  lastRandomAt = 0;
-  private final Random          rng          = new Random();
-  private final int[]           randomColors = new int[] { Color.GREEN, Color.BLUE, Color.CYAN, Color.MAGENTA, Color.RED, Color.YELLOW };
+  private PagerAdapter          pagerAdapter;
+  private ViewPager             viewPager;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -37,30 +30,24 @@ public class MainActivity extends Activity implements OnColorChangedListener, Se
 
     btCommunicator = new BluetoothCommunicator(this, "HC-06");
 
-    colorPicker = (ColorPicker) findViewById(R.id.colorPicker);
-    colorPicker.setOnColorChangedListener(this);
+    pagerAdapter = new PagerAdapter(getSupportFragmentManager());
 
-    opacityBar = (SeekBar) findViewById(R.id.opacityBar);
-    opacityBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
-      @Override
-      public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        btCommunicator.sendMessage("O-" + Integer.toString(progress));
-      }
+    final ActionBar actionBar = getActionBar();
+    actionBar.setHomeButtonEnabled(false);
+    actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
 
+    viewPager = (ViewPager) findViewById(R.id.pager);
+    viewPager.setAdapter(pagerAdapter);
+    viewPager.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
       @Override
-      public void onStartTrackingTouch(SeekBar seekBar) {
-      }
-
-      @Override
-      public void onStopTrackingTouch(SeekBar seekBar) {
+      public void onPageSelected(int position) {
+        actionBar.setSelectedNavigationItem(position);
       }
     });
-  }
 
-  @Override
-  public boolean onCreateOptionsMenu(Menu menu) {
-    getMenuInflater().inflate(R.menu.main, menu);
-    return true;
+    for (int i = 0; i < pagerAdapter.getCount(); i++) {
+      actionBar.addTab(actionBar.newTab().setText(pagerAdapter.getPageTitle(i)).setTabListener(this));
+    }
   }
 
   @Override
@@ -78,19 +65,10 @@ public class MainActivity extends Activity implements OnColorChangedListener, Se
     String[] tokens = message.split("-");
     switch (message.charAt(0)) {
     case 'S':
-      int currentColor = Color.rgb(Integer.parseInt(tokens[1]), Integer.parseInt(tokens[2]), Integer.parseInt(tokens[3]));
-      colorPicker.setColor(currentColor);
-      colorPicker.setOldCenterColor(currentColor);
-      opacityBar.setProgress(Integer.parseInt(tokens[4]));
+      ColorFragment colorFragment = pagerAdapter.getColorFragment();
+      colorFragment.setDisplayedColor(Color.rgb(Integer.parseInt(tokens[1]), Integer.parseInt(tokens[2]), Integer.parseInt(tokens[3])));
+      colorFragment.setDisplayedOpacity(Integer.parseInt(tokens[4]));
     }
-  }
-
-  @Override
-  public void onColorChanged(int color) {
-    colorPicker.setColor(color);
-    colorPicker.setOldCenterColor(color);
-    btCommunicator.sendMessage("C-" + Integer.toString(Color.red(color)) + "-" + Integer.toString(Color.green(color)) + "-"
-        + Integer.toString(Color.blue(color)));
   }
 
   @Override
@@ -108,23 +86,28 @@ public class MainActivity extends Activity implements OnColorChangedListener, Se
   }
 
   @Override
-  public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-  }
-
-  public void setRandomColor() {
-    if (System.currentTimeMillis() - lastRandomAt < 2000) return;
-    int index = rng.nextInt(randomColors.length);
-    onColorChanged(randomColors[index]);
-    lastRandomAt = System.currentTimeMillis();
-  }
-
-  @Override
   public void onSensorChanged(SensorEvent event) {
     if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
       if (event.values[1] > 4) {
-        setRandomColor();
+        pagerAdapter.getColorFragment().setRandomColor();
       }
     }
   }
+
+  public BluetoothCommunicator getCommunicator() {
+    return btCommunicator;
+  }
+
+  @Override
+  public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+
+  @Override
+  public void onTabReselected(Tab tab, FragmentTransaction ft) {}
+
+  @Override
+  public void onTabSelected(Tab tab, FragmentTransaction ft) {}
+
+  @Override
+  public void onTabUnselected(Tab tab, FragmentTransaction ft) {}
+
 }
