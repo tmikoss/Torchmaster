@@ -14,6 +14,7 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Handler;
 import android.util.Log;
+import android.widget.Toast;
 
 public class BluetoothCommunicator {
   public final static int        activityResultBluetoothEnabled = 10;
@@ -28,8 +29,6 @@ public class BluetoothCommunicator {
   private final MainActivity     context;
   private final String           deviceName;
   private final UUID             uuid;
-
-  private boolean                isConnected                    = false;
 
   public BluetoothCommunicator(Activity context, String deviceName) {
     this.context = (MainActivity) context;
@@ -47,6 +46,11 @@ public class BluetoothCommunicator {
     }
   }
 
+  boolean isConnected() {
+    if (btSocket == null) return false;
+    return btSocket.isConnected();
+  }
+
   void establishConnection() {
     Set<BluetoothDevice> pairedDevices = btAdapter.getBondedDevices();
     if (pairedDevices.size() > 0) {
@@ -57,40 +61,35 @@ public class BluetoothCommunicator {
         }
       }
     }
-    try {
-      btAdapter.cancelDiscovery();
-      btSocket = btDevice.createInsecureRfcommSocketToServiceRecord(uuid);
-      try {
-        btSocket.connect();
-        Log.i(TAG, "bluetooth socket connected");
-        try {
-          btInputStream = btSocket.getInputStream();
-          btOutputStream = btSocket.getOutputStream();
-          Log.i(TAG, "getInputStream succeeded");
-        } catch (IOException e_getin) {
-          Log.i(TAG, "getInputStream failed", e_getin);
-        }
-      } catch (IOException econnect) {
-        Log.i(TAG, "connect socket failed", econnect);
-      }
-    } catch (IOException ecreate) {
-      Log.i(TAG, "create socket failed", ecreate);
+    if (btDevice == null) {
+      Toast.makeText(context, "Device not found", Toast.LENGTH_LONG).show();
+      return;
     }
 
-    // try {
-    // btSocket = btDevice.createRfcommSocketToServiceRecord(uuid);
-    // btSocket.connect();
-    // btOutputStream = btSocket.getOutputStream();
-    // btInputStream = btSocket.getInputStream();
-    // } catch (IOException e) {
-    // e.printStackTrace();
-    // return;
-    // }
+    btAdapter.cancelDiscovery();
 
-    isConnected = true;
+    try {
+      btSocket = btDevice.createInsecureRfcommSocketToServiceRecord(uuid);
+      btSocket.connect();
+    } catch (IOException ecreate) {
+      Toast.makeText(context, "Error establishing connection", Toast.LENGTH_LONG).show();
+      return;
+    }
+
+    if (!isConnected()) {
+      Toast.makeText(context, "Could not establish connection", Toast.LENGTH_LONG).show();
+      return;
+    }
+
+    try {
+      btInputStream = btSocket.getInputStream();
+      btOutputStream = btSocket.getOutputStream();
+    } catch (IOException e_getin) {
+      Toast.makeText(context, "Error getting I/O streams", Toast.LENGTH_LONG).show();
+      return;
+    }
 
     receiveMessages();
-
     queryStatus();
     syncTime();
   }
@@ -107,8 +106,7 @@ public class BluetoothCommunicator {
   }
 
   void dropConnection() {
-    if (isConnected) {
-      isConnected = false;
+    if (isConnected()) {
       try {
         btInputStream.close();
         btOutputStream.close();
@@ -120,7 +118,7 @@ public class BluetoothCommunicator {
   }
 
   boolean sendMessage(String message) {
-    if (!isConnected) { return false; }
+    if (!isConnected()) { return false; }
 
     message = message + "\n";
     Log.d("bt out", message);
@@ -147,7 +145,7 @@ public class BluetoothCommunicator {
         readBufferPosition = 0;
         readBuffer = new byte[1024];
         try {
-          while (!Thread.currentThread().isInterrupted() && isConnected) {
+          while (!Thread.currentThread().isInterrupted() && isConnected()) {
             int bytesAvailable = btInputStream.available();
             if (bytesAvailable > 0) {
               byte[] packetBytes = new byte[bytesAvailable];
