@@ -50,8 +50,8 @@ public class ColorFragment extends Fragment implements OnColorChangedListener {
       public void onStopTrackingTouch(SeekBar seekBar) {}
     });
 
-    btCommunicator = ((MainActivity) this.getActivity()).getCommunicator();
-    btCommunicator.queryColorStatus();
+    btCommunicator = ((MainActivity) getActivity()).getCommunicator();
+    btCommunicator.queryStatus();
   }
 
   public void setDisplayedColor(int color) {

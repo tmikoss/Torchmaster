@@ -13,9 +13,11 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Handler;
+import android.util.Log;
 
 public class BluetoothCommunicator {
   public final static int        activityResultBluetoothEnabled = 10;
+  private static final String    TAG                            = "bt";
   private final BluetoothAdapter btAdapter;
   private BluetoothSocket        btSocket;
   private BluetoothDevice        btDevice;
@@ -55,26 +57,45 @@ public class BluetoothCommunicator {
         }
       }
     }
-
     try {
-      btSocket = btDevice.createRfcommSocketToServiceRecord(uuid);
-      btSocket.connect();
-      btOutputStream = btSocket.getOutputStream();
-      btInputStream = btSocket.getInputStream();
-    } catch (IOException e) {
-      e.printStackTrace();
-      return;
+      btAdapter.cancelDiscovery();
+      btSocket = btDevice.createInsecureRfcommSocketToServiceRecord(uuid);
+      try {
+        btSocket.connect();
+        Log.i(TAG, "bluetooth socket connected");
+        try {
+          btInputStream = btSocket.getInputStream();
+          btOutputStream = btSocket.getOutputStream();
+          Log.i(TAG, "getInputStream succeeded");
+        } catch (IOException e_getin) {
+          Log.i(TAG, "getInputStream failed", e_getin);
+        }
+      } catch (IOException econnect) {
+        Log.i(TAG, "connect socket failed", econnect);
+      }
+    } catch (IOException ecreate) {
+      Log.i(TAG, "create socket failed", ecreate);
     }
+
+    // try {
+    // btSocket = btDevice.createRfcommSocketToServiceRecord(uuid);
+    // btSocket.connect();
+    // btOutputStream = btSocket.getOutputStream();
+    // btInputStream = btSocket.getInputStream();
+    // } catch (IOException e) {
+    // e.printStackTrace();
+    // return;
+    // }
 
     isConnected = true;
 
     receiveMessages();
 
-    queryColorStatus();
+    queryStatus();
     syncTime();
   }
 
-  void queryColorStatus() {
+  void queryStatus() {
     sendMessage("S");
   }
 
@@ -102,6 +123,7 @@ public class BluetoothCommunicator {
     if (!isConnected) { return false; }
 
     message = message + "\n";
+    Log.d("bt out", message);
     try {
       btOutputStream.write(message.getBytes());
     } catch (IOException e) {
@@ -140,6 +162,7 @@ public class BluetoothCommunicator {
                   handler.post(new Runnable() {
                     @Override
                     public void run() {
+                      Log.d("bt in", data.trim());
                       context.receiveMessage(data.trim());
                     }
                   });

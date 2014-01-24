@@ -13,6 +13,8 @@ import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.view.ViewPager;
 
+import com.nullwire.trace.ExceptionHandler;
+
 public class MainActivity extends FragmentActivity implements SensorEventListener, ActionBar.TabListener {
   private BluetoothCommunicator btCommunicator;
   private SensorManager         sensorManager;
@@ -23,6 +25,9 @@ public class MainActivity extends FragmentActivity implements SensorEventListene
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+
+    ExceptionHandler.register(this, "http://listening-post.herokuapp.com/report");
+
     setContentView(R.layout.activity_main);
 
     sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
@@ -64,10 +69,18 @@ public class MainActivity extends FragmentActivity implements SensorEventListene
   public void receiveMessage(String message) {
     String[] tokens = message.split("-");
     switch (message.charAt(0)) {
-    case 'S':
-      ColorFragment colorFragment = pagerAdapter.getColorFragment();
-      colorFragment.setDisplayedColor(Color.rgb(Integer.parseInt(tokens[1]), Integer.parseInt(tokens[2]), Integer.parseInt(tokens[3])));
-      colorFragment.setDisplayedOpacity(Integer.parseInt(tokens[4]));
+    case 'C':
+      pagerAdapter.getColorFragment().setDisplayedColor(
+          Color.rgb(Integer.parseInt(tokens[1]), Integer.parseInt(tokens[2]), Integer.parseInt(tokens[3])));
+      break;
+    case 'O':
+      pagerAdapter.getColorFragment().setDisplayedOpacity(Integer.parseInt(tokens[1]));
+      break;
+    case 'A':
+      Alarm weekdayAlarm = new Alarm(tokens[1] == "F", Integer.parseInt(tokens[2]), Integer.parseInt(tokens[3]));
+      Alarm weekendAlarm = new Alarm(tokens[4] == "F", Integer.parseInt(tokens[5]), Integer.parseInt(tokens[6]));
+      pagerAdapter.getAlarmFragment().setAlarms(weekdayAlarm, weekendAlarm);
+      break;
     }
   }
 
