@@ -3,6 +3,9 @@ package com.tmikoss.torchmaster;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -13,170 +16,233 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Handler;
-import android.util.Log;
 import android.widget.Toast;
 
 public class BluetoothCommunicator {
   public final static int        activityResultBluetoothEnabled = 10;
-  private static final String    TAG                            = "bt";
   private final BluetoothAdapter btAdapter;
-  private BluetoothSocket        btSocket;
-  private BluetoothDevice        btDevice;
-  private OutputStream           btOutputStream;
-  private InputStream            btInputStream;
-  private Thread                 listenerThread;
+  private final List<String>     commandQueue;
+  private ConnectThread          connectThread;
+  private CommunicateThread      communicateThread;
+  private final String           deviceName;
+  private final Handler          handler;
 
   private final MainActivity     context;
-  private final String           deviceName;
-  private final UUID             uuid;
 
-  public BluetoothCommunicator(Activity context, String deviceName) {
-    this.context = (MainActivity) context;
-    this.deviceName = deviceName;
-    this.uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
+  public BluetoothCommunicator(Activity _context, String deviceName) {
+    this.context = (MainActivity) _context;
     this.btAdapter = BluetoothAdapter.getDefaultAdapter();
+    this.commandQueue = Collections.synchronizedList(new LinkedList<String>());
+    this.deviceName = deviceName;
+    this.handler = new Handler();
   };
 
-  void enableBluetooth() {
+  public synchronized void attemptConnection() {
     if (!btAdapter.isEnabled()) {
       Intent enableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
       context.startActivityForResult(enableBluetooth, activityResultBluetoothEnabled);
     } else {
-      establishConnection();
+      connectThread = new ConnectThread(btAdapter, deviceName);
+      connectThread.start();
+      syncDeviceTime();
     }
   }
 
-  boolean isConnected() {
-    if (btSocket == null) return false;
-    return btSocket.isConnected();
+  private void connected(BluetoothSocket btSocket) {
+    communicateThread = new CommunicateThread(btSocket, commandQueue);
+    communicateThread.start();
   }
 
-  void establishConnection() {
-    Set<BluetoothDevice> pairedDevices = btAdapter.getBondedDevices();
-    if (pairedDevices.size() > 0) {
-      for (BluetoothDevice device : pairedDevices) {
-        if (device.getName().equals(deviceName)) {
-          btDevice = device;
-          break;
-        }
-      }
+  public void disconnect() {
+    synchronized (commandQueue) {
+      commandQueue.clear();
     }
-    if (btDevice == null) {
-      Toast.makeText(context, "Device not found", Toast.LENGTH_LONG).show();
-      return;
+    if (communicateThread != null) {
+      communicateThread.close();
     }
-
-    btAdapter.cancelDiscovery();
-
-    try {
-      btSocket = btDevice.createInsecureRfcommSocketToServiceRecord(uuid);
-      btSocket.connect();
-    } catch (IOException ecreate) {
-      Toast.makeText(context, "Error establishing connection", Toast.LENGTH_LONG).show();
-      return;
-    }
-
-    if (!isConnected()) {
-      Toast.makeText(context, "Could not establish connection", Toast.LENGTH_LONG).show();
-      return;
-    }
-
-    try {
-      btInputStream = btSocket.getInputStream();
-      btOutputStream = btSocket.getOutputStream();
-    } catch (IOException e_getin) {
-      Toast.makeText(context, "Error getting I/O streams", Toast.LENGTH_LONG).show();
-      return;
-    }
-
-    receiveMessages();
-    queryStatus();
-    syncTime();
   }
 
-  void queryStatus() {
+  public void sendMessage(String message) {
+    synchronized (commandQueue) {
+      commandQueue.add(message + "\n");
+    }
+  }
+
+  public void queryStatus() {
     sendMessage("S");
   }
 
-  void syncTime() {
+  private void messageReceived(final String message) {
+    handler.post(new Runnable() {
+      @Override
+      public void run() {
+        context.receiveMessage(message);
+      }
+    });
+  }
+
+  private void toast(final String message) {
+    handler.post(new Runnable() {
+      @Override
+      public void run() {
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show();
+      }
+    });
+  }
+
+  private void syncDeviceTime() {
     long utcTime = System.currentTimeMillis();
     int offset = TimeZone.getDefault().getRawOffset();
-
     sendMessage("T-" + Long.toString((utcTime + offset) / 1000));
   }
 
-  void dropConnection() {
-    if (isConnected()) {
-      try {
-        btInputStream.close();
-        btOutputStream.close();
-        btSocket.close();
-      } catch (IOException e) {
-        e.printStackTrace();
+  private class ConnectThread extends Thread {
+    private final BluetoothAdapter btAdapter;
+    private final String           deviceName;
+    private BluetoothDevice        btDevice;
+    private BluetoothSocket        btSocket;
+    private final UUID             uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
+
+    public ConnectThread(BluetoothAdapter btAdapter, String deviceName) {
+      this.btAdapter = btAdapter;
+      this.deviceName = deviceName;
+    }
+
+    private void onError(String message) {
+      toast(message);
+      synchronized (BluetoothCommunicator.this) {
+        connectThread = null;
       }
     }
-  }
 
-  boolean sendMessage(String message) {
-    if (!isConnected()) { return false; }
-
-    message = message + "\n";
-    Log.d("bt out", message);
-    try {
-      btOutputStream.write(message.getBytes());
-    } catch (IOException e) {
-      e.printStackTrace();
-      return false;
-    }
-
-    return true;
-  }
-
-  void receiveMessages() {
-    final Handler handler = new Handler();
-    final byte delimiter = 10;
-
-    listenerThread = new Thread(new Runnable() {
-      private byte[] readBuffer;
-      private int    readBufferPosition;
-
-      @Override
-      public void run() {
-        readBufferPosition = 0;
-        readBuffer = new byte[1024];
-        try {
-          while (!Thread.currentThread().isInterrupted() && isConnected()) {
-            int bytesAvailable = btInputStream.available();
-            if (bytesAvailable > 0) {
-              byte[] packetBytes = new byte[bytesAvailable];
-              btInputStream.read(packetBytes);
-              for (int i = 0; i < bytesAvailable; i++) {
-                byte b = packetBytes[i];
-                if (b == delimiter) {
-                  byte[] encodedBytes = new byte[readBufferPosition];
-                  System.arraycopy(readBuffer, 0, encodedBytes, 0, encodedBytes.length);
-                  final String data = new String(encodedBytes, "US-ASCII");
-                  readBufferPosition = 0;
-                  handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                      Log.d("bt in", data.trim());
-                      context.receiveMessage(data.trim());
-                    }
-                  });
-                } else {
-                  readBuffer[readBufferPosition++] = b;
-                }
-              }
-            }
-
+    @Override
+    public void run() {
+      Set<BluetoothDevice> pairedDevices = btAdapter.getBondedDevices();
+      if (pairedDevices.size() > 0) {
+        for (BluetoothDevice device : pairedDevices) {
+          if (device.getName().equals(deviceName)) {
+            btDevice = device;
+            break;
           }
-        } catch (IOException e) {
-          e.printStackTrace();
         }
       }
-    });
+      if (btDevice == null) {
+        onError("No device found");
+        return;
+      }
 
-    listenerThread.start();
+      btAdapter.cancelDiscovery();
+
+      try {
+        btSocket = btDevice.createInsecureRfcommSocketToServiceRecord(uuid);
+        btSocket.connect();
+      } catch (IOException e) {
+        e.printStackTrace();
+        onError("Error connecting");
+        return;
+      }
+
+      if (btSocket.isConnected()) {
+        connected(btSocket);
+      } else {
+        onError("Did not connect");
+      }
+    }
   }
+
+  private class CommunicateThread extends Thread {
+    private OutputStream          btOutputStream;
+    private InputStream           btInputStream;
+    private final BluetoothSocket btSocket;
+    private final List<String>    commandQueue;
+    private final byte[]          readBuffer         = new byte[1024];
+    private int                   readBufferPosition = 0;
+    private final byte            delimiter          = 10;
+
+    public CommunicateThread(BluetoothSocket btSocket, List<String> commandQueue) {
+      this.btSocket = btSocket;
+      this.commandQueue = commandQueue;
+    }
+
+    private void onError(String message) {
+      toast(message);
+      synchronized (BluetoothCommunicator.this) {
+        communicateThread = null;
+      }
+    }
+
+    @Override
+    public void run() {
+      try {
+        this.btInputStream = btSocket.getInputStream();
+        this.btOutputStream = btSocket.getOutputStream();
+      } catch (IOException e) {
+        e.printStackTrace();
+        onError("Error getting I/O streams");
+        return;
+      }
+
+      while (!Thread.currentThread().isInterrupted() && btSocket.isConnected()) {
+        try {
+          sendMessage();
+          receiveMessages();
+        } catch (IOException e) {
+          e.printStackTrace();
+          onError("Error handling message");
+        }
+      }
+
+    }
+
+    public void close() {
+      try {
+        if (btInputStream != null) {
+          btInputStream.close();
+        }
+        if (btOutputStream != null) {
+          btOutputStream.close();
+        }
+
+        btSocket.close();
+
+        synchronized (BluetoothCommunicator.this) {
+          communicateThread = null;
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
+        onError("Error dropping connection");
+      }
+    }
+
+    void sendMessage() throws IOException {
+      synchronized (commandQueue) {
+        if (!commandQueue.isEmpty()) {
+          String message = commandQueue.remove(0);
+          btOutputStream.write(message.getBytes());
+        }
+      }
+    }
+
+    void receiveMessages() throws IOException {
+      int bytesAvailable = btInputStream.available();
+      if (bytesAvailable > 0) {
+        byte[] packetBytes = new byte[bytesAvailable];
+        btInputStream.read(packetBytes);
+        for (int i = 0; i < bytesAvailable; i++) {
+          byte b = packetBytes[i];
+          if (b == delimiter) {
+            byte[] encodedBytes = new byte[readBufferPosition];
+            System.arraycopy(readBuffer, 0, encodedBytes, 0, encodedBytes.length);
+            final String data = new String(encodedBytes, "US-ASCII");
+            readBufferPosition = 0;
+            messageReceived(data.trim());
+          } else {
+            readBuffer[readBufferPosition++] = b;
+          }
+        }
+      }
+    }
+
+  }
+
 }

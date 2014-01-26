@@ -35,6 +35,10 @@ public class MainActivity extends FragmentActivity implements SensorEventListene
 
     btCommunicator = new BluetoothCommunicator(this, "HC-06");
 
+    initializePager();
+  }
+
+  private void initializePager() {
     pagerAdapter = new PagerAdapter(getSupportFragmentManager(), this);
 
     final ActionBar actionBar = getActionBar();
@@ -61,7 +65,7 @@ public class MainActivity extends FragmentActivity implements SensorEventListene
     switch (requestCode) {
     case BluetoothCommunicator.activityResultBluetoothEnabled:
       if (resultCode == RESULT_OK) {
-        btCommunicator.establishConnection();
+        btCommunicator.attemptConnection();
       }
     }
   }
@@ -87,14 +91,14 @@ public class MainActivity extends FragmentActivity implements SensorEventListene
   @Override
   public void onResume() {
     super.onResume();
-    btCommunicator.enableBluetooth();
+    btCommunicator.attemptConnection();
     sensorManager.registerListener(this, accSensor, SensorManager.SENSOR_DELAY_NORMAL);
   }
 
   @Override
   public void onPause() {
     super.onPause();
-    btCommunicator.dropConnection();
+    btCommunicator.disconnect();
     sensorManager.unregisterListener(this, accSensor);
   }
 
