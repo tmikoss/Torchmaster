@@ -16,6 +16,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Handler;
+import android.util.Log;
 import android.widget.Toast;
 
 public class BluetoothCommunicator {
@@ -76,6 +77,7 @@ public class BluetoothCommunicator {
     handler.post(new Runnable() {
       @Override
       public void run() {
+        Log.d("received", message);
         context.receiveMessage(message);
       }
     });
@@ -218,6 +220,7 @@ public class BluetoothCommunicator {
       synchronized (commandQueue) {
         if (!commandQueue.isEmpty()) {
           String message = commandQueue.remove(0);
+          Log.d("sending", message);
           btOutputStream.write(message.getBytes());
         }
       }

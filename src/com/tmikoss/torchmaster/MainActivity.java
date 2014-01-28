@@ -81,8 +81,8 @@ public class MainActivity extends FragmentActivity implements SensorEventListene
       pagerAdapter.getColorFragment().setDisplayedOpacity(Integer.parseInt(tokens[1]));
       break;
     case 'A':
-      Alarm weekdayAlarm = new Alarm(tokens[1] == "F", Integer.parseInt(tokens[2]), Integer.parseInt(tokens[3]));
-      Alarm weekendAlarm = new Alarm(tokens[4] == "F", Integer.parseInt(tokens[5]), Integer.parseInt(tokens[6]));
+      Alarm weekdayAlarm = new Alarm(tokens[1].equals("T"), Integer.parseInt(tokens[2]), Integer.parseInt(tokens[3]));
+      Alarm weekendAlarm = new Alarm(tokens[4].equals("T"), Integer.parseInt(tokens[5]), Integer.parseInt(tokens[6]));
       pagerAdapter.getAlarmFragment().setAlarms(weekdayAlarm, weekendAlarm);
       break;
     }

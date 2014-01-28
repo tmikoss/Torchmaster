@@ -7,34 +7,40 @@
         android:id="@+id/switchWeekdayAlarm"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
-        android:layout_marginLeft="18dp"
-        android:layout_marginTop="16dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"
         android:text="@string/alarmFragment.weekdayTitle" />
 
-    <TimePicker
-        android:id="@+id/pickerWeekdayAlarm"
+    <TextView
+        android:id="@+id/textWeekendAlarm"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
+        android:layout_below="@+id/switchWeekendAlarm"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="35dp"
+        android:text="08:30"
+		android:clickable="true"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
+
+    <TextView
+        android:id="@+id/textWeekdayAlarm"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_below="@+id/switchWeekdayAlarm"
-        android:layout_marginRight="14dp" />
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="35dp"
+        android:text="06:30"
+		android:clickable="true"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
 
     <Switch
         android:id="@+id/switchWeekendAlarm"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/switchWeekdayAlarm"
-        android:layout_centerVertical="true"
+        android:layout_below="@+id/textWeekdayAlarm"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="80dp"
         android:text="@string/alarmFragment.weekendTitle" />
-
-    <TimePicker
-        android:id="@+id/pickerWeekendAlarm"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/pickerWeekdayAlarm"
-        android:layout_below="@+id/switchWeekendAlarm"
-        android:layout_marginTop="18dp" />
 
 </RelativeLayout>
