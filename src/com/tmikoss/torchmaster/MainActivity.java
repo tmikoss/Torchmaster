@@ -122,7 +122,9 @@ public class MainActivity extends FragmentActivity implements SensorEventListene
   public void onTabReselected(Tab tab, FragmentTransaction ft) {}
 
   @Override
-  public void onTabSelected(Tab tab, FragmentTransaction ft) {}
+  public void onTabSelected(Tab tab, FragmentTransaction ft) {
+    viewPager.setCurrentItem(tab.getPosition());
+  }
 
   @Override
   public void onTabUnselected(Tab tab, FragmentTransaction ft) {}
