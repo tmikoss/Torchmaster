@@ -27,6 +27,8 @@ public class BluetoothCommunicator {
   private CommunicateThread      communicateThread;
   private final String           deviceName;
   private final Handler          handler;
+  private int                    connectionAttempts             = 0;
+  private final static int       maxConnectionAttempts          = 10;
 
   private final MainActivity     context;
 
@@ -108,12 +110,18 @@ public class BluetoothCommunicator {
     public ConnectThread(BluetoothAdapter btAdapter, String deviceName) {
       this.btAdapter = btAdapter;
       this.deviceName = deviceName;
+      connectionAttempts += 1;
     }
 
     private void onError(String message) {
-      toast(message);
       synchronized (BluetoothCommunicator.this) {
         connectThread = null;
+        if (connectionAttempts < maxConnectionAttempts) {
+          attemptConnection();
+
+        } else {
+          toast(message);
+        }
       }
     }
 
@@ -139,8 +147,7 @@ public class BluetoothCommunicator {
         btSocket = btDevice.createInsecureRfcommSocketToServiceRecord(uuid);
         btSocket.connect();
       } catch (IOException e) {
-        e.printStackTrace();
-        onError("Error connecting");
+        onError("Can't connect");
         return;
       }
 
