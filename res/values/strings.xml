@@ -3,6 +3,8 @@
 
     <string name="app_name">Torchmaster</string>
     <string name="colorFragment.title">Krāsa</string>
+    <string name="colorFragment.buttonMin">off</string>
+    <string name="colorFragment.buttonMax">max</string>
     <string name="alarmFragment.title">Modinātāji</string>
     <string name="alarmFragment.weekdayTitle">Darba dienās</string>
     <string name="alarmFragment.weekendTitle">Brīvdienās</string>

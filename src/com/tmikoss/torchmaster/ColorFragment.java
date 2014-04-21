@@ -7,7 +7,9 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 
@@ -52,6 +54,24 @@ public class ColorFragment extends Fragment implements OnColorChangedListener {
 
     btCommunicator = ((MainActivity) getActivity()).getCommunicator();
     btCommunicator.queryStatus();
+
+    Button buttonMin = (Button) getView().findViewById(R.id.buttonMin);
+    buttonMin.setOnClickListener(new OnClickListener() {
+      @Override
+      public void onClick(View view) {
+        btCommunicator.sendMessage("O-0");
+        setDisplayedOpacity(0);
+      }
+    });
+
+    Button buttonMax = (Button) getView().findViewById(R.id.buttonMax);
+    buttonMax.setOnClickListener(new OnClickListener() {
+      @Override
+      public void onClick(View view) {
+        btCommunicator.sendMessage("O-100");
+        setDisplayedOpacity(100);
+      }
+    });
   }
 
   public void setDisplayedColor(int color) {

@@ -141,10 +141,9 @@ public class BluetoothCommunicator {
         return;
       }
 
-      btAdapter.cancelDiscovery();
-
       try {
         btSocket = btDevice.createInsecureRfcommSocketToServiceRecord(uuid);
+        btAdapter.cancelDiscovery();
         btSocket.connect();
       } catch (IOException e) {
         onError("Can't connect");
