@@ -16,15 +16,13 @@ import android.widget.TextView;
 import android.widget.TimePicker;
 
 public class AlarmFragment extends Fragment {
-  private BluetoothCommunicator btCommunicator;
+  private TextView    weekdayAlarmText;
+  private TextView    weekendAlarmText;
+  private Switch      weekdayAlarmSwitch;
+  private Switch      weekendAlarmSwitch;
 
-  private TextView              weekdayAlarmText;
-  private TextView              weekendAlarmText;
-  private Switch                weekdayAlarmSwitch;
-  private Switch                weekendAlarmSwitch;
-
-  private final Alarm           weekdayAlarm = new Alarm(false, 6, 30);
-  private final Alarm           weekendAlarm = new Alarm(false, 9, 30);
+  private final Alarm weekdayAlarm = new Alarm(false, 6, 30);
+  private final Alarm weekendAlarm = new Alarm(false, 9, 30);
 
   @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -72,8 +70,8 @@ public class AlarmFragment extends Fragment {
       }
     });
 
-    btCommunicator = ((MainActivity) getActivity()).getCommunicator();
-    btCommunicator.queryStatus();
+    // btCommunicator = ((MainActivity) getActivity()).getCommunicator();
+    // btCommunicator.queryStatus();
 
     updateUI();
   }
@@ -92,9 +90,12 @@ public class AlarmFragment extends Fragment {
   }
 
   private void broadcastAlarms() {
-    btCommunicator.sendMessage("A-" + (weekdayAlarm.enabled == true ? 'T' : 'F') + "-" + Integer.toString(weekdayAlarm.hour) + "-"
-        + Integer.toString(weekdayAlarm.minute) + "-" + (weekendAlarm.enabled == true ? 'T' : 'F') + "-"
-        + Integer.toString(weekendAlarm.hour) + "-" + Integer.toString(weekendAlarm.minute));
+    // btCommunicator.sendMessage("A-" + (weekdayAlarm.enabled == true ? 'T' :
+    // 'F') + "-" + Integer.toString(weekdayAlarm.hour) + "-"
+    // + Integer.toString(weekdayAlarm.minute) + "-" + (weekendAlarm.enabled ==
+    // true ? 'T' : 'F') + "-"
+    // + Integer.toString(weekendAlarm.hour) + "-" +
+    // Integer.toString(weekendAlarm.minute));
     updateUI();
   }
 

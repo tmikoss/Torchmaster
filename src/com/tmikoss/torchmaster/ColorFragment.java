@@ -2,6 +2,11 @@ package com.tmikoss.torchmaster;
 
 import java.util.Random;
 
+import org.apache.http.Header;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -15,16 +20,33 @@ import android.widget.SeekBar.OnSeekBarChangeListener;
 
 import com.larswerkman.holocolorpicker.ColorPicker;
 import com.larswerkman.holocolorpicker.ColorPicker.OnColorChangedListener;
+import com.loopj.android.http.JsonHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
 
 public class ColorFragment extends Fragment implements OnColorChangedListener {
-  private BluetoothCommunicator btCommunicator;
+  private ColorPicker                   colorPicker;
+  private SeekBar                       opacityBar;
 
-  private ColorPicker           colorPicker;
-  private SeekBar               opacityBar;
+  private long                          lastRandomAt    = 0;
+  private final Random                  rng             = new Random();
+  private final int[]                   randomColors    = new int[] { Color.GREEN, Color.BLUE, Color.CYAN, Color.MAGENTA, Color.RED,
+      Color.YELLOW                                     };
 
-  private long                  lastRandomAt = 0;
-  private final Random          rng          = new Random();
-  private final int[]           randomColors = new int[] { Color.GREEN, Color.BLUE, Color.CYAN, Color.MAGENTA, Color.RED, Color.YELLOW };
+  private final JsonHttpResponseHandler responseHandler = new JsonHttpResponseHandler() {
+                                                          @Override
+                                                          public void onSuccess(int statusCode, Header[] headers, JSONObject json) {
+                                                            try {
+                                                              setDisplayedOpacity(json.getInt("a"));
+                                                              setDisplayedColor(Color.rgb(json.getInt("r"), json.getInt("g"),
+                                                                  json.getInt("b")));
+                                                            } catch (JSONException e) {
+                                                              e.printStackTrace();
+                                                            }
+                                                          }
+
+                                                          @Override
+                                                          public void onSuccess(int statusCode, Header[] headers, JSONArray timeline) {}
+                                                        };
 
   @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -42,7 +64,9 @@ public class ColorFragment extends Fragment implements OnColorChangedListener {
     opacityBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
       @Override
       public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        btCommunicator.sendMessage("O-" + Integer.toString(progress));
+        RequestParams params = new RequestParams();
+        params.add("a", Integer.toString(progress));
+        JSONClient.post(params);
       }
 
       @Override
@@ -52,14 +76,15 @@ public class ColorFragment extends Fragment implements OnColorChangedListener {
       public void onStopTrackingTouch(SeekBar seekBar) {}
     });
 
-    btCommunicator = ((MainActivity) getActivity()).getCommunicator();
-    btCommunicator.queryStatus();
+    JSONClient.get(responseHandler);
 
     Button buttonMin = (Button) getView().findViewById(R.id.buttonMin);
     buttonMin.setOnClickListener(new OnClickListener() {
       @Override
       public void onClick(View view) {
-        btCommunicator.sendMessage("O-0");
+        RequestParams params = new RequestParams();
+        params.add("a", "0");
+        JSONClient.post(params);
         setDisplayedOpacity(0);
       }
     });
@@ -68,7 +93,9 @@ public class ColorFragment extends Fragment implements OnColorChangedListener {
     buttonMax.setOnClickListener(new OnClickListener() {
       @Override
       public void onClick(View view) {
-        btCommunicator.sendMessage("O-100");
+        RequestParams params = new RequestParams();
+        params.add("a", "100");
+        JSONClient.post(params);
         setDisplayedOpacity(100);
       }
     });
@@ -89,9 +116,13 @@ public class ColorFragment extends Fragment implements OnColorChangedListener {
 
   @Override
   public void onColorChanged(int color) {
+    RequestParams params = new RequestParams();
+    params.add("r", Integer.toString(Color.red(color)));
+    params.add("g", Integer.toString(Color.green(color)));
+    params.add("b", Integer.toString(Color.blue(color)));
+    JSONClient.post(params);
+
     setDisplayedColor(color);
-    btCommunicator.sendMessage("C-" + Integer.toString(Color.red(color)) + "-" + Integer.toString(Color.green(color)) + "-"
-        + Integer.toString(Color.blue(color)));
   }
 
   public void setRandomColor() {

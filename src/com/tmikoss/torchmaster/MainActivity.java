@@ -3,7 +3,6 @@ package com.tmikoss.torchmaster;
 import android.app.ActionBar;
 import android.app.ActionBar.Tab;
 import android.app.FragmentTransaction;
-import android.content.Intent;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -13,27 +12,20 @@ import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.view.ViewPager;
 
-import com.nullwire.trace.ExceptionHandler;
-
 public class MainActivity extends FragmentActivity implements SensorEventListener, ActionBar.TabListener {
-  private BluetoothCommunicator btCommunicator;
-  private SensorManager         sensorManager;
-  private Sensor                accSensor;
-  private PagerAdapter          pagerAdapter;
-  private ViewPager             viewPager;
+  private SensorManager sensorManager;
+  private Sensor        accSensor;
+  private PagerAdapter  pagerAdapter;
+  private ViewPager     viewPager;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
-    ExceptionHandler.register(this, "http://listening-post.herokuapp.com/report");
-
     setContentView(R.layout.activity_main);
 
     sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
     accSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
-
-    btCommunicator = new BluetoothCommunicator(this, "HC-06");
 
     initializePager();
   }
@@ -59,17 +51,6 @@ public class MainActivity extends FragmentActivity implements SensorEventListene
     }
   }
 
-  @Override
-  protected void onActivityResult(int requestCode, int resultCode, Intent authActivityResult) {
-    super.onActivityResult(requestCode, resultCode, authActivityResult);
-    switch (requestCode) {
-    case BluetoothCommunicator.activityResultBluetoothEnabled:
-      if (resultCode == RESULT_OK) {
-        btCommunicator.attemptConnection();
-      }
-    }
-  }
-
   public void receiveMessage(String message) {
     String[] tokens = message.split("-");
     switch (message.charAt(0)) {
@@ -91,14 +72,12 @@ public class MainActivity extends FragmentActivity implements SensorEventListene
   @Override
   public void onResume() {
     super.onResume();
-    btCommunicator.attemptConnection();
     sensorManager.registerListener(this, accSensor, SensorManager.SENSOR_DELAY_NORMAL);
   }
 
   @Override
   public void onPause() {
     super.onPause();
-    btCommunicator.disconnect();
     sensorManager.unregisterListener(this, accSensor);
   }
 
@@ -109,10 +88,6 @@ public class MainActivity extends FragmentActivity implements SensorEventListene
         pagerAdapter.getColorFragment().setRandomColor();
       }
     }
-  }
-
-  public BluetoothCommunicator getCommunicator() {
-    return btCommunicator;
   }
 
   @Override
